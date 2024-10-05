@@ -1,38 +1,50 @@
 pipeline {
     agent any
 
+    environment {
+        MAVEN_HOME = 'C:/Program Files/Maven/apache-maven-3.9.9' // Windows path to Maven
+    }
+
+    tools {
+        maven 'Maven 3.9.9'  // Ensure this matches your Jenkins Maven tool configuration
+    }
+
     stages {
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
-                // Check out the code from the GitHub repository
                 git branch: 'main', url: 'https://github.com/Gauri9977/My_webapp.git'
             }
         }
         
-        stage('Build Maven Project') {
+        stage('Build') {
             steps {
-                // Clean and build the Maven project
-                script {
-                    sh 'mvn clean package'
-                }
+                // Run Maven build to clean and package the web app
+                bat '"${MAVEN_HOME}/bin/mvn" clean package'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                // Run Maven test 
+                bat '"${MAVEN_HOME}/bin/mvn" test'
             }
         }
 
         stage('Deploy to Tomcat') {
             steps {
-                // Deploy the .war file to the Tomcat server
-                script {
-                    deploy adapters: [tomcat9(credentialsId: 'tomcat-cred', path: '', url: 'http://localhost:8080')],
-                    war: '**/*.war'
-                }
+                deploy adapters: [
+                    tomcat9(credentialsId: 'tomcat-credentials', path: '', url: 'http://localhost:8080')
+                ], war: '**/target/*.war'  // Ensure this path is correct
             }
         }
     }
 
     post {
-        always {
-            // Post actions such as archiving artifacts or sending notifications
-            archiveArtifacts artifacts: '**/target/*.war', allowEmptyArchive: true
+        success {
+            echo 'Deployment successful!'
+        }
+        failure {
+            echo 'Deployment failed!'
         }
     }
 }
